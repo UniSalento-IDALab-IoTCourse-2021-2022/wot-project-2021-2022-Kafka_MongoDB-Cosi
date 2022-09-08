@@ -1,25 +1,21 @@
 import json
 import time
-
+import requests
 import paho.mqtt.client as mqtt
-from confluent_kafka import Producer
 
-yourapikey = "GAFQE22EYTOO4I7O"
-yoursecret = "lBW8dZ1+fZmNRFa5iQbxmFViLXHdEzS0yZRgV/I1EM8F5jezhsJhbgM52r+eLs/f"
-
-conf = {'bootstrap.servers': "pkc-6ojv2.us-west4.gcp.confluent.cloud:9092",
-        'client.id': "bridge", 'security.protocol': 'SASL_SSL', 'sasl.mechanism': 'PLAIN',
-        'sasl.username': yourapikey, 'sasl.password': yoursecret}
-
-producer = Producer(conf)
+api_url = "http://localhost:8082/topics/RSSI"
+headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
 
 
 # callback function
 def on_message(client, userdata, message):
-    # print("Received MQTT message: ", message.payload)
-    msg_dict = json.loads(message.payload)
-    producer.produce("RSSI", message.payload, partition=msg_dict["id"])
-    print("KAFKA: Just published " + str(message.payload) + " to topic RSSI")
+    print("Received MQTT message: ", message.payload)
+    my_json = json.loads(message.payload)
+    value = json.dumps(my_json)
+    response = requests.post(api_url, json={"records": [{
+        "value": value,
+        "partition": my_json["id"]}]}, headers=headers)
+    print(response.json())
 
 
 # client connection
