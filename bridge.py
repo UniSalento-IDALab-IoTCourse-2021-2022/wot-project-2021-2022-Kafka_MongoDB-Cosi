@@ -3,7 +3,8 @@ import time
 import requests
 import paho.mqtt.client as mqtt
 
-api_url = "http://localhost:8082/topics/zi76opth-RSSI"
+api_url_RSSI = "http://localhost:8082/topics/zi76opth-RSSI"
+api_url_coordinate = "http://localhost:8082/topics/zi76opth-coordinate"
 headers = {"Content-Type": "application/vnd.kafka.json.v2+json"}
 
 
@@ -12,9 +13,16 @@ def on_message(client, userdata, message):
     print("Received MQTT message: ", message.payload)
     my_json = json.loads(message.payload)
     value = json.dumps(my_json)
-    response = requests.post(api_url, json={"records": [{
-        "value": value,
-        "partition": my_json["id"]}]}, headers=headers)
+
+    if message.topic == "IoT_Project/RSSI":
+        response = requests.post(api_url_RSSI, json={"records": [{
+            "value": value,
+            "partition": my_json["id"]}]}, headers=headers)
+    else:
+        response = requests.post(api_url_coordinate, json={"records": [{
+            "value": value,
+            "partition": 0}]}, headers=headers)
+
     print("Sending message to the broker: ", response.json())
 
 
@@ -24,6 +32,7 @@ mqtt_client = mqtt.Client("Bridge")
 mqtt_client.connect(mqtt_broker)
 
 mqtt_client.subscribe("IoT_Project/RSSI")
+mqtt_client.subscribe("IoT_Project/coordinates")
 mqtt_client.on_message = on_message
 
 # loop with timer (if not received message for 5 seconds, close)
